@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+
   text {
     font: bold 48px monospace;
+  }
+  circle {
+    cursor: pointer;
+    opacity:0.8;
   }
 
 </style>
@@ -22,8 +27,8 @@
     }
     return color;
   }
-  var width = 1920,
-    height = 1080;
+  var width = $(document).width()-50,
+    height = $(document).height()-50;
   var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
@@ -36,31 +41,53 @@
 
   function appendCircle(txid) {
     var minR = 40;
+    var maxR = 200;
     getTxData(txid, function (data) {
       var radius;
-      if (data.valueOut * 100 < minR)
+      if (data.valueOut < minR)
         radius = minR;
+      else if (data.valueOut > minR && data.valueOut < maxR)
+        radius = data.valueOut;
       else
-        radius = data.valueOut * 100;
-      var cx = Math.random() * 720;
-      var cy = Math.random() * 720;
+        radius = maxR;
+
+      var cx = Math.floor(Math.random() * ((width - radius) - radius + 1) + radius);
+      var cy = Math.floor(Math.random() * ((height - radius) - radius + 1) + radius);
       var g = svg.append("g");
       var circle = g.append("circle");
-      circle.style("fill", getRandomColor());
-      circle.attr("r", radius);
-      circle.attr("cx", cx);
-      circle.attr("cy", cy);
-      var text = g.append("text");
-      text
-        .attr("x", cx - 16)
-        .attr("y", cy + 5)
+      circle
+        .style("fill", getRandomColor())
+        .attr("r", radius)
+        .attr("cx", cx)
+        .attr("cy", cy)
+        .on('click', function() {
+          window.location = 'https://insight.bitpay.com/tx/' + txid;
+        });
+      var txidtext = g.append("text");
+      txidtext
+        .attr("x", cx - 34)
+        .attr("y", cy + 2)
 
         .attr("font-family", "sans-serif")
         .style("font-size", "14px")
-        .text(txid.substring(0, 4));
+        .text(txid.substring(0, 8))
+        .on('click', function() {
+          window.location = 'https://insight.bitpay.com/tx/' + txid;
+        });
+
+      var valuetext = g.append("text");
+      valuetext
+        .attr("x", cx - 26)
+        .attr("y", cy + 22)
+        .attr("font-family", "sans-serif")
+        .style("font-size", "14px")
+        .text(data.valueOut.toString().substring(0, 6))
+        .on('click', function() {
+          window.location = 'https://insight.bitpay.com/tx/' + txid;
+        });
       setTimeout(function () {
         g.remove();
-      }, 1000);
+      }, 5000);
     });
   }
 
@@ -74,11 +101,9 @@
   var socket = io("https://insight.bitpay.com:443/");
   socket.on('connect', function () {
     console.log('connected');
-    // Join the room.
     socket.emit('subscribe', room);
   });
   socket.on(eventToListenTo, function (data) {
     appendCircle(data.txid);
-    console.log('updating', data.txid);
   })
 </script>
