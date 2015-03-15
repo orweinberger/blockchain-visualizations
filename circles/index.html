@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  text {
+    font: bold 48px monospace;
+  }
+
+</style>
+<body>
+
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="http://d3js.org/d3.v2.min.js?2.10.1"></script>
+<script src="https://insight.bitpay.com/socket.io/socket.io.js"></script>
+
+<script>
+
+  function getRandomColor() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+  var width = 1920,
+    height = 1080;
+  var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  function getTxData(txid, cb) {
+    $.get("https://insight.bitpay.com/api/tx/" + txid, function (data) {
+      return cb(data);
+    });
+  }
+
+  function appendCircle(txid) {
+    var minR = 40;
+    getTxData(txid, function (data) {
+      var radius;
+      if (data.valueOut * 100 < minR)
+        radius = minR;
+      else
+        radius = data.valueOut * 100;
+      var cx = Math.random() * 720;
+      var cy = Math.random() * 720;
+      var g = svg.append("g");
+      var circle = g.append("circle");
+      circle.style("fill", getRandomColor());
+      circle.attr("r", radius);
+      circle.attr("cx", cx);
+      circle.attr("cy", cy);
+      var text = g.append("text");
+      text
+        .attr("x", cx - 16)
+        .attr("y", cy + 5)
+
+        .attr("font-family", "sans-serif")
+        .style("font-size", "14px")
+        .text(txid.substring(0, 4));
+      setTimeout(function () {
+        g.remove();
+      }, 1000);
+    });
+  }
+
+
+</script>
+
+<script>
+  eventToListenTo = 'tx';
+  room = 'inv';
+  console.log('loaded', io);
+  var socket = io("https://insight.bitpay.com:443/");
+  socket.on('connect', function () {
+    console.log('connected');
+    // Join the room.
+    socket.emit('subscribe', room);
+  });
+  socket.on(eventToListenTo, function (data) {
+    appendCircle(data.txid);
+    console.log('updating', data.txid);
+  })
+</script>
